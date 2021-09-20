@@ -134,21 +134,32 @@ public class Main extends TelegramLongPollingBot {
 
             toMessage.setChatId(String.valueOf(chatId));
 
+            boolean isDigits = inputText.matches("^[0-9]+$");
 
-            if (inputText.matches("^[0-9]+$")) {
+            if (isDigits && (fromCurrency != null && toCurrency != null)) {
                 Double amount = Double.parseDouble(inputText);
                 String convertedAmount = convertAmount(amount, fromCurrency, toCurrency);
                 toMessage.setText(amount + " " + fromCurrency + " = " + convertedAmount + " " + toCurrency);
+                clearCurrencies();
+
                 try {
                     execute(toMessage);
                 } catch (TelegramApiException e) {
                     e.printStackTrace();
                 }
+            }else if (isDigits){
+                toMessage.setText("Please click the given buttons");
+                clearCurrencies();
 
+                try {
+                    execute(toMessage);
+                } catch (TelegramApiException e) {
+                    e.printStackTrace();
+                }
             }
 
-
             switch (inputText) {
+
                 case "/start":
                     toMessage.setText("Welcome to our currency converter bot. " +
                             "This bot will help you to convert Uzbek Som into another currency.\n" +
@@ -252,5 +263,10 @@ public class Main extends TelegramLongPollingBot {
         return inlineKeyboardButton;
     }
 
+
+    public void clearCurrencies() {
+        fromCurrency = null;
+        toCurrency = null;
+    }
 
 }
