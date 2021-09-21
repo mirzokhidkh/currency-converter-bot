@@ -1,6 +1,8 @@
 package uz.mk.utils;
 
 public interface KeyboardButtons {
+    final String BACK = "BACK";
+    final String CONVERTER = "CONVERTER";
     final String UZS = "UZS";
     final String USD = "USD";
     final String RUB = "RUB";
