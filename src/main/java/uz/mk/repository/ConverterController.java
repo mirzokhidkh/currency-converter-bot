@@ -33,6 +33,7 @@ import static uz.mk.utils.KeyboardButtons.UZS;
 public class ConverterController extends TelegramLongPollingBot {
     private String toCurrency;
     private String fromCurrency;
+    private String lastCallbackData;
 
     @Override
     public String getBotUsername() {
@@ -63,55 +64,67 @@ public class ConverterController extends TelegramLongPollingBot {
             List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
 
             List<InlineKeyboardButton> row1 = new ArrayList<>();
+            List<InlineKeyboardButton> row2 = new ArrayList<>();
             InlineKeyboardButton btn1;
             InlineKeyboardButton btn2;
+            InlineKeyboardButton btn3;
 
-            switch (callbackData) {
-                case USD:
-                    editMessageText.setText("Choose one of these:");
-                    row1 = new ArrayList<>();
-                    btn1 = createInlineKeyboardButton(UZS_USD_WITH_FLAG, UZS_USD);
-                    btn2 = createInlineKeyboardButton(USD_UZS_WITH_FLAG, USD_UZS);
-                    row1.add(btn1);
-                    row1.add(btn2);
-                    rowList.add(row1);
-                    inlineKeyboardMarkup.setKeyboard(rowList);
-                    editMessageText.setReplyMarkup(inlineKeyboardMarkup);
-//                    toCurrency = callbackData;
-                    break;
-                case RUB:
-                    editMessageText.setText("Choose one of these:");
-                    row1 = new ArrayList<>();
-                    btn1 = createInlineKeyboardButton(UZS_RUB_WITH_FLAG, UZS_RUB);
-                    btn2 = createInlineKeyboardButton(RUB_USZ_WITH_FLAG, RUB_USZ);
-                    row1.add(btn1);
-                    row1.add(btn2);
-                    rowList.add(row1);
-                    inlineKeyboardMarkup.setKeyboard(rowList);
-                    editMessageText.setReplyMarkup(inlineKeyboardMarkup);
-//                    toCurrency = callbackData;
-                    break;
-                case UZS_USD:
-                    fromCurrency = UZS;
-                    toCurrency = USD;
-                    editMessageText.setText("Enter amount which is converting :");
-                    break;
-                case USD_UZS:
-                    fromCurrency = USD;
-                    toCurrency = UZS;
-                    editMessageText.setText("Enter amount which is converting :");
-                    break;
-                case UZS_RUB:
-                    fromCurrency = UZS;
-                    toCurrency = RUB;
-                    editMessageText.setText("Enter amount which is converting :");
-                    break;
-                case RUB_USZ:
-                    fromCurrency = RUB;
-                    toCurrency = UZS;
-                    editMessageText.setText("Enter amount which is converting :");
-                    break;
+            int i = 1;
 
+            while (i-- != 0) {
+//                lastCallbackData = callbackData;
+                switch (callbackData) {
+                    case BACK:
+                        i++;
+                        break;
+                    case USD:
+                        editMessageText.setText("Choose one of these:");
+                        btn1 = createInlineKeyboardButton(UZS_USD_WITH_FLAG, UZS_USD);
+                        btn2 = createInlineKeyboardButton(USD_UZS_WITH_FLAG, USD_UZS);
+                        btn3 = createInlineKeyboardButton(BACK, BACK);
+                        row1.add(btn1);
+                        row1.add(btn2);
+                        row2.add(btn3);
+                        rowList.add(row1);
+                        rowList.add(row2);
+                        inlineKeyboardMarkup.setKeyboard(rowList);
+                        editMessageText.setReplyMarkup(inlineKeyboardMarkup);
+                        break;
+                    case RUB:
+                        editMessageText.setText("Choose one of these:");
+                        btn1 = createInlineKeyboardButton(UZS_RUB_WITH_FLAG, UZS_RUB);
+                        btn2 = createInlineKeyboardButton(RUB_USZ_WITH_FLAG, RUB_USZ);
+                        btn3 = createInlineKeyboardButton(BACK, BACK);
+                        row1.add(btn1);
+                        row1.add(btn2);
+                        row2.add(btn3);
+                        rowList.add(row1);
+                        rowList.add(row2);
+                        inlineKeyboardMarkup.setKeyboard(rowList);
+                        editMessageText.setReplyMarkup(inlineKeyboardMarkup);
+                        break;
+                    case UZS_USD:
+                        fromCurrency = UZS;
+                        toCurrency = USD;
+                        editMessageText.setText("Enter amount which is converting :");
+                        break;
+                    case USD_UZS:
+                        fromCurrency = USD;
+                        toCurrency = UZS;
+                        editMessageText.setText("Enter amount which is converting :");
+                        break;
+                    case UZS_RUB:
+                        fromCurrency = UZS;
+                        toCurrency = RUB;
+                        editMessageText.setText("Enter amount which is converting :");
+                        break;
+                    case RUB_USZ:
+                        fromCurrency = RUB;
+                        toCurrency = UZS;
+                        editMessageText.setText("Enter amount which is converting :");
+                        break;
+
+                }
             }
 
 
@@ -160,7 +173,6 @@ public class ConverterController extends TelegramLongPollingBot {
 
                     KeyboardRow keyboardRow = new KeyboardRow();
                     keyboardRow.add(new KeyboardButton(CONVERTER));
-                    keyboardRow.add(new KeyboardButton(BACK));
                     keyboardRows.add(keyboardRow);
 
                     keyboardMarkup.setKeyboard(keyboardRows);
