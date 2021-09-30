@@ -3,12 +3,16 @@ package uz.mk.repository;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.vdurmont.emoji.EmojiParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -27,10 +31,13 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import static uz.mk.utils.InlineButton.*;
 import static uz.mk.utils.KeyboardButtons.*;
 import static uz.mk.utils.KeyboardButtons.UZS;
 
 public class ConverterController extends TelegramLongPollingBot {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConverterController.class);
+
     private String toCurrency;
     private String fromCurrency;
     private String lastCallbackData;
@@ -47,61 +54,53 @@ public class ConverterController extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        SendMessage toMessage = new SendMessage();
-        Message fromMessage = update.getMessage();
+        SendMessage sendMessage = new SendMessage();
+        Message message = update.getMessage();
 
 
-        if (update.hasCallbackQuery()) {
+        if (update.hasCallbackQuery() && !update.getCallbackQuery().getData().isEmpty()) {
             EditMessageText editMessageText = new EditMessageText();
             CallbackQuery callbackQuery = update.getCallbackQuery();
-            String callbackData = update.getCallbackQuery().getData();
+            User user = callbackQuery.getFrom();
+            message = callbackQuery.getMessage();
+            String data = callbackQuery.getData();
+
+            LOGGER.info("messageId: " + message.getMessageId() + "  User_Name: " + user.getFirstName() + "  message: " + data);
+
 
             editMessageText.setChatId(String.valueOf(callbackQuery.getMessage().getChatId()));
             editMessageText.setMessageId(callbackQuery.getMessage().getMessageId());
 
-            InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-
-            List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-
-            List<InlineKeyboardButton> row1 = new ArrayList<>();
-            List<InlineKeyboardButton> row2 = new ArrayList<>();
-            InlineKeyboardButton btn1;
-            InlineKeyboardButton btn2;
-            InlineKeyboardButton btn3;
 
             int i = 1;
 
             while (i-- != 0) {
 //                lastCallbackData = callbackData;
-                switch (callbackData) {
+                switch (data) {
                     case BACK:
                         i++;
                         break;
                     case USD:
                         editMessageText.setText("Choose one of these:");
-                        btn1 = createInlineKeyboardButton(UZS_USD_WITH_FLAG, UZS_USD);
-                        btn2 = createInlineKeyboardButton(USD_UZS_WITH_FLAG, USD_UZS);
-                        btn3 = createInlineKeyboardButton(BACK, BACK);
-                        row1.add(btn1);
-                        row1.add(btn2);
-                        row2.add(btn3);
-                        rowList.add(row1);
-                        rowList.add(row2);
-                        inlineKeyboardMarkup.setKeyboard(rowList);
-                        editMessageText.setReplyMarkup(inlineKeyboardMarkup);
+                        editMessageText.setReplyMarkup(keyboardMarkup(
+                                rowCollection(
+                                        row(
+                                                keyboardButton(EmojiParser.parseToUnicode(":uz:UZS :arrows_counterclockwise: USD:us:"), UZS_USD),
+                                                keyboardButton(EmojiParser.parseToUnicode(":us:USD :arrows_counterclockwise: UZS:uz:"), USD_UZS)
+                                        ),
+                                        row(keyboardButton(BACK, BACK))
+                                )));
                         break;
                     case RUB:
                         editMessageText.setText("Choose one of these:");
-                        btn1 = createInlineKeyboardButton(UZS_RUB_WITH_FLAG, UZS_RUB);
-                        btn2 = createInlineKeyboardButton(RUB_USZ_WITH_FLAG, RUB_USZ);
-                        btn3 = createInlineKeyboardButton(BACK, BACK);
-                        row1.add(btn1);
-                        row1.add(btn2);
-                        row2.add(btn3);
-                        rowList.add(row1);
-                        rowList.add(row2);
-                        inlineKeyboardMarkup.setKeyboard(rowList);
-                        editMessageText.setReplyMarkup(inlineKeyboardMarkup);
+                        editMessageText.setReplyMarkup(keyboardMarkup(
+                                rowCollection(
+                                        row(
+                                                keyboardButton(EmojiParser.parseToUnicode(":uz:UZS :arrows_counterclockwise: RUB:ru:"), UZS_USD),
+                                                keyboardButton(EmojiParser.parseToUnicode(":ru:RUB :arrows_counterclockwise: UZS:uz:"), USD_UZS)
+                                        ),
+                                        row(keyboardButton(BACK, BACK))
+                                )));
                         break;
                     case UZS_USD:
                         fromCurrency = UZS;
@@ -135,36 +134,36 @@ public class ConverterController extends TelegramLongPollingBot {
             }
 
 
-        } else if (update.hasMessage() && fromMessage.hasText()) {
-            String inputText = fromMessage.getText();
-            Long chatId = fromMessage.getChatId();
+        } else if (update.hasMessage() && message.hasText()) {
+            String inputText = message.getText();
+            Long chatId = message.getChatId();
 
-            toMessage.setChatId(String.valueOf(chatId));
+            sendMessage.setChatId(String.valueOf(chatId));
 
             boolean isDigits = inputText.matches("^[0-9]+$");
 
             if (isDigits && (fromCurrency != null && toCurrency != null)) {
                 Double amount = Double.parseDouble(inputText);
                 String convertedAmount = convertAmount(amount, fromCurrency, toCurrency);
-                toMessage.setText(amount + " " + fromCurrency + " = " + convertedAmount + " " + toCurrency);
+                sendMessage.setText(amount + " " + fromCurrency + " = " + convertedAmount + " " + toCurrency);
                 clearCurrencies();
 
-                executeMessage(toMessage);
+                executeMessage(sendMessage);
             } else if (isDigits) {
-                toMessage.setText("Please click the given buttons");
+                sendMessage.setText("Please click the given buttons");
                 clearCurrencies();
 
-                executeMessage(toMessage);
+                executeMessage(sendMessage);
             }
 
             switch (inputText) {
 
                 case "/start":
-                    toMessage.setText("Welcome to our currency converter bot. " +
+                    sendMessage.setText("Welcome to our currency converter bot. " +
                             "This bot will help you to convert Uzbek Som into another currency.");
 
                     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-                    toMessage.setReplyMarkup(keyboardMarkup);
+                    sendMessage.setReplyMarkup(keyboardMarkup);
                     keyboardMarkup.setResizeKeyboard(true);
                     keyboardMarkup.setOneTimeKeyboard(true);
                     keyboardMarkup.setSelective(true);
@@ -177,26 +176,19 @@ public class ConverterController extends TelegramLongPollingBot {
 
                     keyboardMarkup.setKeyboard(keyboardRows);
 
-                    executeMessage(toMessage);
+                    executeMessage(sendMessage);
                     break;
 
                 case CONVERTER:
-                    toMessage.setText("Choose one of on the given currency units.");
-
-                    InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-                    toMessage.setReplyMarkup(inlineKeyboardMarkup);
-
-                    List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-
-                    List<InlineKeyboardButton> row1 = new ArrayList<>();
-                    InlineKeyboardButton button1 = createInlineKeyboardButton(USD_WITH_FLAG, USD);
-                    InlineKeyboardButton button2 = createInlineKeyboardButton(RUB_WITH_FLAG, RUB);
-                    row1.add(button1);
-                    row1.add(button2);
-                    rowList.add(row1);
-                    inlineKeyboardMarkup.setKeyboard(rowList);
-
-                    executeMessage(toMessage);
+                    sendMessage.setText("Choose one of on the given currency units.");
+                    sendMessage.setReplyMarkup(keyboardMarkup(
+                            rowCollection(
+                                    row(
+                                            keyboardButton(EmojiParser.parseToUnicode("USD:us:"), USD),
+                                            keyboardButton(EmojiParser.parseToUnicode("RUB:ru:"), RUB)
+                                    ),
+                                    row(keyboardButton(BACK,BACK)))));
+                    executeMessage(sendMessage);
                     break;
             }
 
